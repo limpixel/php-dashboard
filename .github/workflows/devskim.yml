@@ -1,0 +1,33 @@
+name: DevSkim Security Scanning
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '18 3 * * 2'  # Weekly on Tuesday at 03:18 UTC
+
+jobs:
+  devskim:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run DevSkim scanner
+      uses: microsoft/DevSkim-Action@v1
+      with:
+        path-to-scan: .
+        output-file: devskim-results.sarif
+
+    - name: Upload DevSkim scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: devskim-results.sarif

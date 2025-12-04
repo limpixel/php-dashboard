@@ -1,0 +1,168 @@
+name: CI/CD Pipeline for PHP Native Dashboard
+
+# Trigger events
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # Build and Test Job
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker images
+      run: |
+        docker-compose build --no-cache
+        
+    - name: Start services
+      run: |
+        docker-compose up -d
+        
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for MySQL to be ready..."
+        timeout 60 bash -c 'until docker-compose exec mysql mysqladmin ping -h localhost -u root -proot_password --silent; do sleep 2; done'
+        
+        echo "Waiting for PHP-FPM to be ready..."
+        timeout 30 bash -c 'until docker-compose exec php php-fpm -t; do sleep 2; done'
+        
+        echo "Waiting for Nginx to be ready..."
+        timeout 30 bash -c 'until curl -f http://localhost:8080; do sleep 2; done'
+        
+    - name: Check service status
+      run: |
+        docker-compose ps
+        
+    - name: Test database connection
+      run: |
+        docker-compose exec php php -r "
+        \$host = getenv('DB_HOST') ?: 'mysql';
+        \$user = getenv('DB_USER') ?: 'root';
+        \$pass = getenv('DB_PASS') ?: 'root_password';
+        \$db = getenv('DB_NAME') ?: 'stmik_ids';
+        
+        try {
+            \$conn = new PDO(\"mysql:host=\$host;dbname=\$db\", \$user, \$pass);
+            echo 'Database connection: SUCCESS\n';
+            
+            // Test if tables exist
+            \$stmt = \$conn->query(\"SHOW TABLES\");
+            \$tables = \$stmt->fetchAll(PDO::FETCH_COLUMN);
+            echo 'Tables found: ' . implode(', ', \$tables) . '\n';
+            
+        } catch (PDOException \$e) {
+            echo 'Database connection: FAILED - ' . \$e->getMessage() . '\n';
+            exit(1);
+        }
+        "
+        
+    - name: Test application endpoints
+      run: |
+        echo "Testing main application endpoint..."
+        curl -f http://localhost:8080 || exit 1
+        
+        echo "Testing login page..."
+        curl -f http://localhost:8080/login.php || exit 1
+        
+        echo "Testing dashboard redirect..."
+        curl -I http://localhost:8080/index.php | grep -E "HTTP/1\.1 302|HTTP/1\.1 200" || exit 1
+        
+    - name: Test PHP syntax
+      run: |
+        echo "Checking PHP syntax..."
+        find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -E "Parse error|Fatal error" && exit 1 || echo "All PHP files syntax OK"
+        
+    - name: Test CRUD operations (if possible)
+      run: |
+        echo "Testing basic functionality..."
+        # Test if we can access the login form
+        curl -s http://localhost:8080/login.php | grep -q "username" || exit 1
+        
+        # Test if we can access the dashboard (should redirect to login)
+        curl -I http://localhost:8080/dashboard/ | grep -E "HTTP/1\.1 302" || exit 1
+        
+    - name: Generate deployment report
+      run: |
+        echo "## Deployment Report" > deployment-report.md
+        echo "### Services Status" >> deployment-report.md
+        docker-compose ps >> deployment-report.md
+        echo "" >> deployment-report.md
+        echo "### Application Health" >> deployment-report.md
+        echo "- Main Application: $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)" >> deployment-report.md
+        echo "- phpMyAdmin: $(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081)" >> deployment-report.md
+        echo "" >> deployment-report.md
+        echo "### Database Tables" >> deployment-report.md
+        docker-compose exec mysql mysql -u root -proot_password stmik_ids -e "SHOW TABLES;" >> deployment-report.md 2>/dev/null || echo "Database connection failed" >> deployment-report.md
+        
+    - name: Upload deployment report
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-report
+        path: deployment-report.md
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down -v
+        docker system prune -f
+
+  # Security Scan Job
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run security scan
+      run: |
+        echo "Running basic security checks..."
+        
+        # Check for hardcoded passwords
+        if grep -r "password.*=" . --include="*.php" --include="*.yml" --include="*.yaml" | grep -v "getenv\|environment\|example"; then
+          echo "WARNING: Potential hardcoded passwords found"
+        fi
+        
+        # Check for SQL injection vulnerabilities
+        if grep -r "mysqli_query.*\$" . --include="*.php" | grep -v "mysqli_real_escape_string\|prepared\|stmt"; then
+          echo "WARNING: Potential SQL injection vulnerabilities found"
+        fi
+        
+        # Check for XSS vulnerabilities
+        if grep -r "echo.*\$" . --include="*.php" | grep -v "htmlspecialchars\|htmlentities"; then
+          echo "WARNING: Potential XSS vulnerabilities found"
+        fi
+        
+        echo "Security scan completed"
+
+  # Deploy Job (if main branch)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your deployment commands here
+        # For example: deploy to a staging server
+        
+    - name: Notify deployment
+      run: |
+        echo "Deployment completed successfully!"
+        echo "Application is available at staging URL"

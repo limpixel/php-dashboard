@@ -1,0 +1,36 @@
+# Nginx configuration for PHP Native Dashboard
+# Based on php-todo reference implementation
+
+# Use official Nginx image (Alpine version - smaller and more secure)
+FROM nginx:1.25-alpine
+
+# Install curl for health check
+RUN apk add --no-cache curl
+
+# Remove default nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy our custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Create directory for application files
+RUN mkdir -p /var/www/html
+
+# DO NOT copy application files here - we use volume mounting
+# This allows live reload during development
+# Students can edit CSS/HTML files and see changes immediately
+# without needing to rebuild the nginx image
+
+# Set permissions for application directory (will be overridden by volume)
+RUN chown -R nginx:nginx /var/www/html \
+    && chmod -R 755 /var/www/html
+
+# Expose port 80 for HTTP
+EXPOSE 80
+
+# Health check to ensure nginx can serve pages
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
+# Run Nginx in foreground (daemon off so container doesn't exit)
+CMD ["nginx", "-g", "daemon off;"]
