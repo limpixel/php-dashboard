@@ -455,18 +455,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🎉 Selamat Belajar & Happy Coding! 🚀
-
-Project ini dirancang khusus untuk **mahasiswa** yang mau belajar web development dengan teknologi modern. Semua fitur dirancang untuk **educational purposes** dengan fokus pada **best practices** dan **real-world skills**.
-
-**Made with ❤️ for Students & Developers!**
-
----
-
-### 📞 Need Help?
-
-- 📧 **Email**: [your-email@example.com]
-- 🐛 **Issues**: [GitHub Issues](https://github.com/your-username/php-native-dashboard/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-username/php-native-dashboard/discussions)
-
-**Happy Coding! 🎓✨**
+<div align="center">
+  <p font="bold">🔥🔥 Let Him Cook 🔥🔥 </p>
+  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMDgybnVxMHZ1bXJhN2NzaGthcjhudWwzZXA1em9yZ3V4M2JrMHY4bCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/mSmDzUMlxKTVDB1TFV/giphy.gif" alt="Contoh Gambar" style="width:100%; object-fit:cover">
+</div>
