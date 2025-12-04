@@ -1,5 +1,3 @@
-# PHPStan Configuration for PHP Native Dashboard
-
 parameters:
     # Analysis level (0-9, higher = stricter)
     level: 5

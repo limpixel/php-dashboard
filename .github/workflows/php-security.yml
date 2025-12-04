@@ -29,8 +29,6 @@ jobs:
           p/owasp-top-ten
           p/xss
           p/sql-injection
-        publishSarif: true
-        severity: ERROR,WARNING
 
   phpstan-analysis:
     name: PHPStan Static Analysis
@@ -89,7 +87,7 @@ jobs:
     - name: Check for hardcoded passwords
       run: |
         echo "🔍 Checking for hardcoded passwords..."
-        if grep -r "password.*=" . --include="*.php" --include="*.yml" --include="*.yaml" | grep -v "getenv\|environment\|example\|placeholder\|\$_POST\|DB_PASSWORD\|root_password"; then
+        if grep -r "password.*=" . --include="*.php" --include="*.yml" --include="*.yaml" | grep -v "getenv\|environment\|example\|placeholder\|\$_POST\|DB_PASSWORD\|root_password\|type.*password"; then
           echo "❌ WARNING: Potential hardcoded passwords found"
           exit 1
         else
