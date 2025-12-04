@@ -1,0 +1,58 @@
+# PHPStan Configuration for PHP Native Dashboard
+
+parameters:
+    # Analysis level (0-9, higher = stricter)
+    level: 5
+    
+    # Paths to analyze
+    paths:
+        - .
+    
+    # Paths to exclude from analysis
+    excludePaths:
+        - vendor/*
+        - node_modules/*
+        - .git/*
+        - docker-compose.yml
+        - Dockerfile*
+        - nginx.conf
+    
+    # Check for missing iterable value types
+    checkMissingIterableValueType: false
+    
+    # Check for too wide return types
+    checkTooWideReturnTypesInProtectedAndPublicMethods: false
+    
+    # Check for missing closure return types
+    checkMissingCallableSignature: false
+    
+    # Check for unused private properties
+    checkUninitializedProperties: false
+    
+    # Ignore errors for specific patterns
+    ignoreErrors:
+        # Allow mysqli_* functions (legacy code)
+        - '#Call to an undefined method mysqli::query\(\)#'
+        - '#Call to an undefined method mysqli::fetch_assoc\(\)#'
+        - '#Call to an undefined method mysqli::connect\(\)#'
+        
+        # Allow $_SESSION, $_POST, $_GET usage
+        - '#Access to an undefined property \$_SESSION#'
+        - '#Access to an undefined property \$_POST#'
+        - '#Access to an undefined property \$_GET#'
+        
+        # Allow header() function usage
+        - '#Call to an undefined function header\(\)#'
+        
+        # Allow require_once/include_once
+        - '#Call to an undefined function require_once\(\)#'
+        - '#Call to an undefined function include_once\(\)#'
+
+# Custom rules for this project
+services:
+    -
+        class: PHPStan\Rules\DeadCode\UnusedPrivatePropertyRule
+        tags:
+            - dead-code
+        ignoreErrors:
+            - '#Property .* is unused.#'

@@ -1,4 +1,4 @@
-name: DevSkim Security Scanning
+name: DevSkim Security Scanning (Enhanced)
 
 on:
   push:
@@ -25,9 +25,10 @@ jobs:
       with:
         path-to-scan: .
         output-file: devskim-results.sarif
+        rules: 'security,credentials'  # Enhanced rules for better coverage
 
     - name: Upload DevSkim scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4  # Update ke v4
       if: always()
       with:
         sarif_file: devskim-results.sarif
